@@ -78,7 +78,7 @@ func main() {
 		panic(err)
 	}
 
-	getMeanSigma()
+	//getMeanSigma()
 }
 
 func getMeanSigma() {
@@ -153,10 +153,10 @@ func getPoints(def bool) plotter.XYs {
 		}
 		return pts
 	}
-	pts := make(plotter.XYs, len(deflected))
+	pts := make(plotter.XYs, len(undeflected))
 	for i := range pts {
-		pts[i].X = deflected[i].x
-		pts[i].Y = deflected[i].y
+		pts[i].X = undeflected[i].x
+		pts[i].Y = undeflected[i].y
 	}
 	return pts
 
@@ -181,7 +181,7 @@ func readFile(cup bool, run int) {
 	}
 
 	for _, file := range files {
-		if strings.Contains(file.Name(), typeStr+"_deflected") && strings.Contains(file.Name(), strconv.Itoa(run-1)) {
+		if strings.Contains(file.Name(), typeStr+"_deflected_"+strconv.Itoa(run)) {
 			f, err := os.Open("data/" + file.Name())
 			if err != nil {
 				log.Fatal(err)
@@ -217,7 +217,7 @@ func readFile(cup bool, run int) {
 	}
 
 	for _, file := range files {
-		if strings.Contains(file.Name(), typeStr+"_undeflected") && strings.Contains(file.Name(), strconv.Itoa(run-1)) {
+		if strings.Contains(file.Name(), typeStr+"_undeflected_"+strconv.Itoa(run)) {
 			f, err := os.Open("data/" + file.Name())
 			if err != nil {
 				log.Fatal(err)
