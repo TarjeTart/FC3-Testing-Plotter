@@ -1,9 +1,17 @@
 package main
 
+/*02/17/20223:
+def-x=250
+def-y=200
+dl5=600
+*/
+
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -71,6 +79,63 @@ func main() {
 	if err := p.Save(12*vg.Inch, 9*vg.Inch, "points.png"); err != nil {
 		panic(err)
 	}
+
+	getMeanSigma(*cup, *run)
+}
+
+func getMeanSigma(cup bool, run int) {
+
+	if cup {
+
+		sum := 0.0
+		for _, i := range cupDataDeflected[run-1] {
+			sum += i.y
+		}
+		mean := sum / float64(len(cupDataDeflected[run-1]))
+		diffSq := 0.0
+		for _, i := range cupDataDeflected[run-1] {
+			diffSq += math.Pow(i.y-mean, 2)
+		}
+		sigma := math.Sqrt(diffSq / float64(len(cupDataDeflected[run-1])))
+		fmt.Printf("Deflected Mean: %f\nDefelcted Sigma %f\n", mean, sigma)
+
+		sum = 0.0
+		for _, i := range cupDataUndeflected[run-1] {
+			sum += i.y
+		}
+		mean = sum / float64(len(cupDataUndeflected[run-1]))
+		diffSq = 0.0
+		for _, i := range cupDataUndeflected[run-1] {
+			diffSq += math.Pow(i.y-mean, 2)
+		}
+		sigma = math.Sqrt(diffSq / float64(len(cupDataUndeflected[run-1])))
+		fmt.Printf("Undeflected Mean: %f\nUndefelcted Sigma %f\n", mean, sigma)
+	} else {
+		sum := 0.0
+		for _, i := range faceDataDeflected[run-1] {
+			sum += i.y
+		}
+		mean := sum / float64(len(faceDataDeflected[run-1]))
+		diffSq := 0.0
+		for _, i := range faceDataDeflected[run-1] {
+			diffSq += math.Pow(i.y-mean, 2)
+		}
+		sigma := math.Sqrt(diffSq / float64(len(faceDataDeflected[run-1])))
+		fmt.Printf("Deflected Mean: %f\nDefelcted Sigma %f\n", mean, sigma)
+
+		sum = 0.0
+		for _, i := range faceDataUndeflected[run-1] {
+			sum += i.y
+		}
+		mean = sum / float64(len(faceDataUndeflected[run-1]))
+		diffSq = 0.0
+		for _, i := range faceDataUndeflected[run-1] {
+			diffSq += math.Pow(i.y-mean, 2)
+		}
+		sigma = math.Sqrt(diffSq / float64(len(faceDataUndeflected[run-1])))
+		fmt.Printf("Undeflected Mean: %f\nUndefelcted Sigma %f\n", mean, sigma)
+	}
+
 }
 
 // creates a plotter.XYs for the data with a time average of n data points
@@ -89,6 +154,14 @@ func getTimeAvgPoints(cup bool, def bool, run int, n int) plotter.XYs {
 				for j := 0; j < n; j++ {
 					ysum += cupDataDeflected[run][i*n+j].y
 				}
+				mean := ysum / float64(n)
+				diffsq := 0.0
+				for j := 0; j < n; j++ {
+					diffsq += math.Pow(mean-cupDataDeflected[run][i*n+j].y, 2)
+				}
+				//sigma := math.Sqrt(diffsq / float64(n))
+				//fmt.Printf("Mean: %f Sigma: %f\n", mean, sigma)
+
 				//add average to data point and center at middle time of averaged data points
 				pts[i].X = cupDataDeflected[run][i+(n/2)].x
 				pts[i].Y = ysum / float64(n)
@@ -102,6 +175,13 @@ func getTimeAvgPoints(cup bool, def bool, run int, n int) plotter.XYs {
 			for j := 0; j < n; j++ {
 				ysum += cupDataUndeflected[run][i*n+j].y
 			}
+			mean := ysum / float64(n)
+			diffsq := 0.0
+			for j := 0; j < n; j++ {
+				diffsq += math.Pow(mean-cupDataUndeflected[run][i*n+j].y, 2)
+			}
+			//sigma := math.Sqrt(diffsq / float64(n))
+			//fmt.Printf("Mean: %f Sigma: %f\n", mean, sigma)
 			pts[i].X = cupDataUndeflected[run][i+(n/2)].x
 			pts[i].Y = ysum / float64(n)
 		}
@@ -116,6 +196,13 @@ func getTimeAvgPoints(cup bool, def bool, run int, n int) plotter.XYs {
 			for j := 0; j < n; j++ {
 				ysum += faceDataDeflected[run][i*n+j].y
 			}
+			mean := ysum / float64(n)
+			diffsq := 0.0
+			for j := 0; j < n; j++ {
+				diffsq += math.Pow(mean-faceDataDeflected[run][i*n+j].y, 2)
+			}
+			//sigma := math.Sqrt(diffsq / float64(n))
+			//fmt.Printf("Mean: %f Sigma: %f\n", mean, sigma)
 			pts[i].X = faceDataDeflected[run][i+(n/2)].x
 			pts[i].Y = ysum / float64(n)
 		}
@@ -127,6 +214,13 @@ func getTimeAvgPoints(cup bool, def bool, run int, n int) plotter.XYs {
 		for j := 0; j < n; j++ {
 			ysum += faceDataUndeflected[run][i*n+j].y
 		}
+		mean := ysum / float64(n)
+		diffsq := 0.0
+		for j := 0; j < n; j++ {
+			diffsq += math.Pow(mean-faceDataUndeflected[run][i*n+j].y, 2)
+		}
+		//sigma := math.Sqrt(diffsq / float64(n))
+		//fmt.Printf("Mean: %f Sigma: %f\n", mean, sigma)
 		pts[i].X = faceDataUndeflected[run][i+(n/2)].x
 		pts[i].Y = ysum / float64(n)
 	}
