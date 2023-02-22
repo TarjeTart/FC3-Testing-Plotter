@@ -9,12 +9,16 @@ dl5=600
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -29,6 +33,8 @@ type dataPoint struct {
 
 var deflected []dataPoint
 var undeflected []dataPoint
+var xVals []float64
+var meanSig []float64
 
 func main() {
 
@@ -78,9 +84,87 @@ func main() {
 		panic(err)
 	}
 
-	//getMeanSigma()
+	getMeanSigma()
+
+	initializeXVals(1000)
+
+	http.HandleFunc("/", httpserver)
+	http.ListenAndServe(":8081", nil)
+	//http://localhost:8081
 }
 
+// generate line items for normal curve
+func generateLineItems(mean float64, sigma float64) []opts.LineData {
+	items := make([]opts.LineData, 0)
+	for _, i := range xVals {
+		items = append(items, opts.LineData{Value: norm(i, mean, sigma)})
+	}
+	return items
+}
+
+func httpserver(w http.ResponseWriter, _ *http.Request) {
+	// create a new line instance
+	line := charts.NewLine()
+	// set some global options like Title/Legend/ToolTip or anything else
+	line.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
+		charts.WithTitleOpts(opts.Title{
+			Title: "Deflected and Undeflected Normal Distributions",
+		}),
+	)
+
+	// Put data into instance
+	line.SetXAxis(xVals).
+		AddSeries("Deflected", generateLineItems(meanSig[0], meanSig[1])).
+		AddSeries("Undefelcted", generateLineItems(meanSig[2], meanSig[3])).
+		SetSeriesOptions(
+			charts.WithLabelOpts(opts.Label{
+				Show: true,
+			}),
+			charts.WithAreaStyleOpts(opts.AreaStyle{
+				Opacity: 0.2,
+			}),
+			charts.WithLineChartOpts(opts.LineChart{
+				Smooth: true,
+			}),
+		)
+	line.Render(w)
+}
+
+// creates x-vals for plot with n points in between
+func initializeXVals(n int) {
+
+	//set lower bound to lowest of two mean-4*sigma
+	lower := 0.0
+	if meanSig[0]-(4*meanSig[1]) < meanSig[2]-(4*meanSig[3]) {
+		lower = meanSig[0] - (4 * meanSig[1])
+	} else {
+		lower = meanSig[2] - (4 * meanSig[3])
+	}
+
+	//set upper bound to highest of two mean+4*sigma
+	upper := 0.0
+	if meanSig[0]+(4*meanSig[1]) > meanSig[2]+(4*meanSig[3]) {
+		upper = meanSig[0] + (4 * meanSig[1])
+	} else {
+		upper = meanSig[2] + (4 * meanSig[3])
+	}
+
+	delta := (upper - lower) / float64(n)
+
+	for i := lower; i <= upper; i += delta {
+		xVals = append(xVals, i)
+	}
+
+}
+
+// return val for normal dist of mean and sigma at x
+func norm(x float64, mean float64, sigma float64) float64 {
+	power := -.5 * (math.Pow((x-mean)/sigma, 2))
+	return (1 / (sigma * math.Sqrt(2*math.Pi))) * math.Pow(math.E, power)
+}
+
+// get mean and sigma from data and saves to array
 func getMeanSigma() {
 
 	sum := 0.0
@@ -93,7 +177,8 @@ func getMeanSigma() {
 		diffSq += math.Pow(i.y-mean, 2)
 	}
 	sigma := math.Sqrt(diffSq / float64(len(deflected)))
-	fmt.Printf("Deflected Mean: %f\nDefelcted Sigma %f\n", mean, sigma)
+	meanSig = append(meanSig, mean)
+	meanSig = append(meanSig, sigma)
 
 	sum = 0.0
 	for _, i := range undeflected {
@@ -105,7 +190,8 @@ func getMeanSigma() {
 		diffSq += math.Pow(i.y-mean, 2)
 	}
 	sigma = math.Sqrt(diffSq / float64(len(undeflected)))
-	fmt.Printf("Undeflected Mean: %f\nUndefelcted Sigma %f\n", mean, sigma)
+	meanSig = append(meanSig, mean)
+	meanSig = append(meanSig, sigma)
 
 }
 
